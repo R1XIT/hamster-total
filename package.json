@@ -1,0 +1,29 @@
+{
+  "name": "homo-antivirus",
+  "version": "0.1.0",
+  "description": "Desktop hamster companion antivirus",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "package-app": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "build": {
+    "appId": "com.example.homoantivirus",
+    "productName": "Homo Antivirus",
+    "files": ["dist/**/*", "src/renderer/**/*.html", "src/settings/**/*.html", "assets/processed/**/*"],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
