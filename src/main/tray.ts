@@ -33,7 +33,7 @@ export function createTray(options: TrayOptions): Tray {
     ]);
   }
 
-  tray.setToolTip('Homo Antivirus');
+  tray.setToolTip('Hamser Total');
   tray.setContextMenu(buildMenu());
   return tray;
 }

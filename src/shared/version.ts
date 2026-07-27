@@ -1,1 +1,1 @@
-export const APP_NAME = 'Homo Antivirus';
+export const APP_NAME = 'Hamser Total';

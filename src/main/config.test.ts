@@ -8,7 +8,7 @@ let tmpDir: string;
 let configPath: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'homo-antivirus-config-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hamser-total-config-'));
   configPath = path.join(tmpDir, 'config.json');
 });
 

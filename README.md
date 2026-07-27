@@ -1,4 +1,4 @@
-# Homo Antivirus
+# Hamser Total
 
 A desktop hamster companion for Windows. It sits on your screen, periodically
 scans folders you configure using the built-in Windows Defender engine, and
