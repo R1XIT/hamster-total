@@ -21,12 +21,13 @@
   "build": {
     "appId": "com.example.homoantivirus",
     "productName": "Homo Antivirus",
-    "files": ["dist/**/*", "src/renderer/**/*.html", "src/settings/**/*.html", "assets/processed/**/*"],
+    "files": ["dist/**/*", "src/renderer/**/*.html", "src/settings/**/*.html", "assets/processed/**/*", "assets/icon.ico"],
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.ico"
     }
   }
 }

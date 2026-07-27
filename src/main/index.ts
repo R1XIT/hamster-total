@@ -11,6 +11,7 @@ import { createTray } from './tray';
 import { openSettingsWindow } from './settingsWindow';
 
 const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
+const trayIconPath = path.join(__dirname, '..', '..', 'assets', 'icon.ico');
 
 let hamsterWindow: BrowserWindow | null = null;
 
@@ -79,7 +80,7 @@ app.whenReady().then(() => {
   scheduler = createScheduler();
   scheduler.start();
   createTray({
-    iconPath: path.join(assetsDir, 'homo_defoult.webp'),
+    iconPath: trayIconPath,
     scheduler: scheduler!,
     configStore,
     openSettings: () =>
