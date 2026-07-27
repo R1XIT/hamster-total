@@ -2168,7 +2168,7 @@ export function createTray(options: TrayOptions): Tray {
 
 Modify `src/main/index.ts`:
 - Add import: `import { createTray } from './tray';`
-- Add, inside `app.whenReady().then(...)`, after `registerThreatResponseHandlers(...)`:
+- Add, inside `app.whenReady().then(...)`, **after `scheduler.start();`** (must come after `scheduler` is assigned — `scheduler` is `null` until that line runs, and `createTray` reads it immediately when building the tray menu):
   ```ts
   createTray({
     iconPath: path.join(assetsDir, 'homo_defoult.webp'),
