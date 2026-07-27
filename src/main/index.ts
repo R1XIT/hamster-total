@@ -7,6 +7,9 @@ import { ScanScheduler } from './scanner/scheduler';
 import { scanPath } from './scanner/defender';
 import { ConfigStore } from './config';
 import { IgnoredThreatsTracker, notifyThreats, registerThreatResponseHandlers } from './threatFlow';
+import { createTray } from './tray';
+
+const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 
 let hamsterWindow: BrowserWindow | null = null;
 
@@ -67,8 +70,14 @@ app.whenReady().then(() => {
   if (hamsterWindow) registerThreatResponseHandlers(hamsterWindow, ipcMain, ignoredThreats);
   scheduler = createScheduler();
   scheduler.start();
+  createTray({
+    iconPath: path.join(assetsDir, 'homo_defoult.webp'),
+    scheduler: scheduler!,
+    configStore,
+    openSettings: () => {
+      // Task 12 fills this in
+    },
+  });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('window-all-closed', () => {});
