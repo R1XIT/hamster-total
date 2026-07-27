@@ -58,11 +58,13 @@ export class HamsterStateMachine {
   }
 
   startScanning(): void {
+    this.notifyActivity();
     this.clearOneShotTimer();
     this.setState('scanning');
   }
 
   stopScanning(): void {
+    this.notifyActivity();
     this.setState('idle');
   }
 

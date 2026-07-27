@@ -101,6 +101,37 @@ describe('HamsterStateMachine', () => {
     sm.stop();
   });
 
+  it('startScanning resets the inactivity clock to prevent sleep', () => {
+    const sm = new HamsterStateMachine(buildManifest());
+    sm.start();
+
+    // Mock Math.random to prevent idle variants from triggering
+    const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+
+    // Advance to 4 minutes (well before sleep threshold)
+    vi.advanceTimersByTime(4 * 60 * 1000);
+    expect(sm.getState()).toBe('idle');
+
+    // Start scanning, which resets lastActivity
+    sm.startScanning();
+    expect(sm.getState()).toBe('scanning');
+
+    // Advance 4 more minutes while scanning (total elapsed: 8 min, but scan reset the clock)
+    vi.advanceTimersByTime(4 * 60 * 1000);
+    expect(sm.getState()).toBe('scanning');
+
+    // Stop scanning, which also updates activity (resets the clock again)
+    sm.stopScanning();
+    expect(sm.getState()).toBe('idle');
+
+    // Advance 5+ minutes to reach sleep threshold from stopScanning
+    vi.advanceTimersByTime(5 * 60 * 1000 + 100);
+    expect(sm.getState()).toBe('fallingAsleep');
+
+    mockRandom.mockRestore();
+    sm.stop();
+  });
+
   it('notifies listeners on every state change', () => {
     const sm = new HamsterStateMachine(buildManifest());
     const listener = vi.fn();
