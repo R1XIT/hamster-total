@@ -1,16 +1,25 @@
 import { app, BrowserWindow } from 'electron';
+import * as path from 'path';
 import { APP_NAME } from '../shared/version';
 
-function createWindow(): void {
-  const win = new BrowserWindow({
+let hamsterWindow: BrowserWindow | null = null;
+
+function createHamsterWindow(): void {
+  hamsterWindow = new BrowserWindow({
     width: 400,
     height: 500,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    title: APP_NAME,
     webPreferences: { nodeIntegration: true, contextIsolation: false },
   });
-  win.loadURL(`data:text/html,<h1>${APP_NAME}</h1>`);
+  hamsterWindow.loadFile(path.join(__dirname, '..', '..', 'src', 'renderer', 'index.html'));
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createHamsterWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
