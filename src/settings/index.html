@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Настройки Homo Antivirus</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    label { display: block; margin-top: 12px; }
+    #folder-list { margin: 8px 0; }
+    #folder-list div { display: flex; justify-content: space-between; padding: 2px 0; }
+  </style>
+</head>
+<body>
+  <h2>Папки для авто-скана</h2>
+  <div id="folder-list"></div>
+  <button id="add-folder">Добавить папку</button>
+
+  <label>
+    Интервал авто-скана (часы)
+    <input id="scan-interval" type="number" min="1" />
+  </label>
+
+  <label>
+    Таймаут до сна (минуты)
+    <input id="sleep-timeout" type="number" min="1" />
+  </label>
+
+  <button id="save">Сохранить</button>
+
+  <script>require('../../dist/settings/index.js');</script>
+</body>
+</html>

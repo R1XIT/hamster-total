@@ -8,6 +8,7 @@ import { scanPath } from './scanner/defender';
 import { ConfigStore } from './config';
 import { IgnoredThreatsTracker, notifyThreats, registerThreatResponseHandlers } from './threatFlow';
 import { createTray } from './tray';
+import { openSettingsWindow } from './settingsWindow';
 
 const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 
@@ -74,9 +75,7 @@ app.whenReady().then(() => {
     iconPath: path.join(assetsDir, 'homo_defoult.webp'),
     scheduler: scheduler!,
     configStore,
-    openSettings: () => {
-      // Task 12 fills this in
-    },
+    openSettings: () => openSettingsWindow(configStore),
   });
 });
 
