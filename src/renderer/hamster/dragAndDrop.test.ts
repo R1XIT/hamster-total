@@ -22,41 +22,35 @@ describe('extractDroppedFilePath', () => {
 });
 
 describe('setupDragAndDrop', () => {
-  // Note: jsdom's CSSOM (cssstyle) does not recognize the non-standard
-  // `-webkit-app-region` property — it silently drops it regardless of whether it's
-  // set via setProperty, cssText, or the style attribute (confirmed by direct jsdom
-  // experimentation). Real Chromium/Electron supports it fine (it's already used in
-  // index.html), so we assert via a spy on setProperty rather than reading the value
-  // back through the CSSOM.
-  it('toggles -webkit-app-region to no-drag on dragenter and back to drag on dragleave', async () => {
+  it('calls onFileDropped with the resolved path of a dropped file', async () => {
     const { setupDragAndDrop } = await import('./dragAndDrop');
     const element = document.createElement('div');
     document.body.appendChild(element);
-    const setPropertySpy = vi.spyOn(element.style, 'setProperty');
+    const fakeFile = {} as File;
+    const getPathForFile = vi.fn().mockReturnValue('C:\\Users\\vlad\\Downloads\\file.exe');
+    const onFileDropped = vi.fn();
 
-    setupDragAndDrop(element, vi.fn(), vi.fn());
+    setupDragAndDrop(element, getPathForFile, onFileDropped);
 
-    element.dispatchEvent(new Event('dragenter', { bubbles: true }));
-    expect(setPropertySpy).toHaveBeenLastCalledWith('-webkit-app-region', 'no-drag');
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as DragEvent;
+    Object.defineProperty(dropEvent, 'dataTransfer', { value: { files: [fakeFile] } });
+    element.dispatchEvent(dropEvent);
 
-    element.dispatchEvent(new Event('dragleave', { bubbles: true }));
-    expect(setPropertySpy).toHaveBeenLastCalledWith('-webkit-app-region', 'drag');
+    expect(onFileDropped).toHaveBeenCalledWith('C:\\Users\\vlad\\Downloads\\file.exe');
   });
 
-  it('reverts -webkit-app-region to drag on drop', async () => {
+  it('does not call onFileDropped when the drop has no files', async () => {
     const { setupDragAndDrop } = await import('./dragAndDrop');
     const element = document.createElement('div');
     document.body.appendChild(element);
-    const setPropertySpy = vi.spyOn(element.style, 'setProperty');
+    const onFileDropped = vi.fn();
 
-    setupDragAndDrop(element, vi.fn(), vi.fn());
-
-    element.dispatchEvent(new Event('dragenter', { bubbles: true }));
-    expect(setPropertySpy).toHaveBeenLastCalledWith('-webkit-app-region', 'no-drag');
+    setupDragAndDrop(element, vi.fn(), onFileDropped);
 
     const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as DragEvent;
     Object.defineProperty(dropEvent, 'dataTransfer', { value: { files: [] } });
     element.dispatchEvent(dropEvent);
-    expect(setPropertySpy).toHaveBeenLastCalledWith('-webkit-app-region', 'drag');
+
+    expect(onFileDropped).not.toHaveBeenCalled();
   });
 });

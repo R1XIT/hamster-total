@@ -57,6 +57,16 @@ ipcMain.on('get-config', (event) => {
   event.returnValue = configStore.load();
 });
 
+// Manual window dragging: the renderer reports pointer-movement deltas (see
+// windowDragging.ts) because CSS `-webkit-app-region: drag` would otherwise
+// swallow the DOM mouse/drop events the hamster needs. Apply each delta to the
+// frameless window's current position.
+ipcMain.on('move-window', (_event, delta: { dx: number; dy: number }) => {
+  if (!hamsterWindow) return;
+  const [x, y] = hamsterWindow.getPosition();
+  hamsterWindow.setPosition(Math.round(x + delta.dx), Math.round(y + delta.dy));
+});
+
 ipcMain.on('file-dropped', async (event, filePath: string) => {
   if (!fs.existsSync(filePath)) {
     event.sender.send('file-drop-result', { accepted: false, reason: 'not-found' });

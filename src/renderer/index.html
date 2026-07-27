@@ -4,12 +4,21 @@
   <meta charset="utf-8" />
   <style>
     html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+    /*
+      No -webkit-app-region: drag here. In Electron an OS window-drag region
+      swallows DOM mouse events (mousedown/mouseup/click) and native file `drop`
+      events, which broke the drag animation, wake-on-click, and file-eating.
+      The window is instead moved manually from JS (see windowDragging.ts +
+      the 'move-window' IPC handler in main/index.ts), so the hamster element
+      keeps receiving normal DOM events.
+    */
     #hamster-root {
       width: 150px; height: 190px;
-      -webkit-app-region: drag;
+      cursor: grab;
       display: flex; align-items: flex-end; justify-content: center;
       position: relative;
     }
+    #hamster-root:active { cursor: grabbing; }
     #hamster-img { width: 120px; height: 120px; object-fit: contain; -webkit-user-drag: none; }
     .bubble {
       position: absolute; top: 2px; left: 50%; transform: translateX(-50%);

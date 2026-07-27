@@ -27,6 +27,33 @@ describe('setupDraggingAnimation', () => {
     expect(stateMachine.stopDragging).toHaveBeenCalledOnce();
   });
 
+  it('reports screen-coordinate deltas via onDragMove while dragging', () => {
+    const element = document.createElement('div');
+    document.body.appendChild(element);
+    const stateMachine = buildStateMachine('dragging');
+    const onDragMove = vi.fn();
+
+    setupDraggingAnimation(element, stateMachine as never, onDragMove);
+
+    element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, screenX: 100, screenY: 100 }));
+    window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, screenX: 130, screenY: 90 }));
+
+    expect(onDragMove).toHaveBeenCalledWith(30, -10);
+  });
+
+  it('does not report movement via onDragMove before mousedown', () => {
+    const element = document.createElement('div');
+    document.body.appendChild(element);
+    const stateMachine = buildStateMachine('idle');
+    const onDragMove = vi.fn();
+
+    setupDraggingAnimation(element, stateMachine as never, onDragMove);
+
+    window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, screenX: 130, screenY: 90 }));
+
+    expect(onDragMove).not.toHaveBeenCalled();
+  });
+
   it('does not call stopDragging on mouseup if not currently dragging', () => {
     const element = document.createElement('div');
     document.body.appendChild(element);

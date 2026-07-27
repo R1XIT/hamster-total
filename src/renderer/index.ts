@@ -38,7 +38,9 @@ setupThreatNotifications(bubble, stateMachine);
 
 const rootEl = document.getElementById('hamster-root') as HTMLDivElement;
 
-setupDraggingAnimation(rootEl, stateMachine);
+setupDraggingAnimation(rootEl, stateMachine, (dx, dy) => {
+  ipcRenderer.send('move-window', { dx, dy });
+});
 
 setupDragAndDrop(
   rootEl,

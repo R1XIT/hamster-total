@@ -12,22 +12,15 @@ export function setupDragAndDrop(
   getPathForFile: (file: File) => string,
   onFileDropped: (filePath: string) => void
 ): void {
-  // `-webkit-app-region: drag` (set on this element so the frameless window can be
-  // moved by dragging the hamster) intercepts native OS drag-and-drop and prevents
-  // `drop` events from ever firing. Temporarily switch to `no-drag` while an OS drag
-  // is over the element, and restore `drag` once it leaves or completes.
-  element.addEventListener('dragenter', () => {
-    element.style.setProperty('-webkit-app-region', 'no-drag');
-  });
-  element.addEventListener('dragleave', () => {
-    element.style.setProperty('-webkit-app-region', 'drag');
-  });
+  // The hamster element no longer uses `-webkit-app-region: drag` (window moves
+  // are handled manually in JS), so native file `drop` events fire normally —
+  // no app-region toggling needed. We only have to preventDefault on dragover so
+  // the browser accepts the drop.
   element.addEventListener('dragover', (event) => {
     event.preventDefault();
   });
   element.addEventListener('drop', (event) => {
     event.preventDefault();
-    element.style.setProperty('-webkit-app-region', 'drag');
     const filePath = extractDroppedFilePath(event, getPathForFile);
     if (filePath) onFileDropped(filePath);
   });
