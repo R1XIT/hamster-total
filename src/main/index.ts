@@ -3,6 +3,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { APP_NAME } from '../shared/version';
 import { trashFile } from './fileops/trash';
+import { ScanScheduler } from './scanner/scheduler';
+import { scanPath } from './scanner/defender';
+import { ConfigStore } from './config';
 
 let hamsterWindow: BrowserWindow | null = null;
 
@@ -19,6 +22,26 @@ function createHamsterWindow(): void {
     webPreferences: { nodeIntegration: true, contextIsolation: false },
   });
   hamsterWindow.loadFile(path.join(__dirname, '..', '..', 'src', 'renderer', 'index.html'));
+}
+
+const configStore = new ConfigStore(path.join(app.getPath('userData'), 'config.json'));
+
+let scheduler: ScanScheduler | null = null;
+
+function createScheduler(): ScanScheduler {
+  return new ScanScheduler(
+    () => configStore.load(),
+    async (targetPath) => {
+      hamsterWindow?.webContents.send('scan-started');
+      const result = await scanPath(targetPath);
+      hamsterWindow?.webContents.send('scan-finished');
+      return result;
+    },
+    (detections) => {
+      // eslint-disable-next-line no-console
+      console.log('Threats found (bubble wiring added in Task 10):', detections);
+    }
+  );
 }
 
 ipcMain.on('file-dropped', async (event, filePath: string) => {
@@ -38,7 +61,11 @@ ipcMain.on('file-dropped', async (event, filePath: string) => {
   }
 });
 
-app.whenReady().then(createHamsterWindow);
+app.whenReady().then(() => {
+  createHamsterWindow();
+  scheduler = createScheduler();
+  scheduler.start();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

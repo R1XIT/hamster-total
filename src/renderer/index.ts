@@ -52,3 +52,11 @@ ipcRenderer.on('file-drop-result', (_event, result: { accepted: boolean; reason?
     setTimeout(() => bubble.hide(), 3000);
   }
 });
+
+ipcRenderer.on('scan-started', () => {
+  stateMachine.startScanning();
+});
+
+ipcRenderer.on('scan-finished', () => {
+  stateMachine.stopScanning();
+});
