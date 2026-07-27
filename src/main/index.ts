@@ -6,8 +6,8 @@ let hamsterWindow: BrowserWindow | null = null;
 
 function createHamsterWindow(): void {
   hamsterWindow = new BrowserWindow({
-    width: 400,
-    height: 500,
+    width: 150,
+    height: 190,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
