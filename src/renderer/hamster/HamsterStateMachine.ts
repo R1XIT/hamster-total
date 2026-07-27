@@ -68,6 +68,15 @@ export class HamsterStateMachine {
     this.setState('idle');
   }
 
+  triggerClickAnimation(): void {
+    if (this.state === 'sleeping' || this.state === 'fallingAsleep') {
+      this.notifyActivity();
+      return;
+    }
+    if (this.state !== 'idle') return;
+    this.playRandomIdleVariant();
+  }
+
   startEating(onComplete: () => void): void {
     this.notifyActivity();
     this.clearOneShotTimer();
@@ -107,6 +116,11 @@ export class HamsterStateMachine {
   private maybePlayIdleVariant(): void {
     if (this.state !== 'idle') return;
     if (Math.random() > IDLE_VARIANT_CHANCE) return;
+    this.playRandomIdleVariant();
+  }
+
+  private playRandomIdleVariant(): void {
+    this.clearOneShotTimer();
     const variant: HamsterState = Math.random() < 0.5 ? 'idleVariant1' : 'idleVariant2';
     this.setState(variant);
     const duration = this.manifest[variant].durationMs;

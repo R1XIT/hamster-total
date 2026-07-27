@@ -141,4 +141,83 @@ describe('HamsterStateMachine', () => {
 
     expect(listener).toHaveBeenCalledWith('dragging');
   });
+
+  describe('triggerClickAnimation', () => {
+    it('plays an idle variant when idle, then returns to idle after its duration', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      expect(sm.getState()).toBe('idle');
+
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.1); // < 0.5 -> idleVariant1
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('idleVariant1');
+
+      vi.advanceTimersByTime(2000);
+      expect(sm.getState()).toBe('idle');
+
+      mockRandom.mockRestore();
+      sm.stop();
+    });
+
+    it('wakes the hamster when sleeping (same end-to-end behavior as notifyActivity)', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      vi.advanceTimersByTime(5 * 60 * 1000 + 1500);
+      expect(sm.getState()).toBe('sleeping');
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('waking');
+
+      vi.advanceTimersByTime(1200);
+      expect(sm.getState()).toBe('idle');
+
+      sm.stop();
+    });
+
+    it('wakes the hamster when fallingAsleep', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      vi.advanceTimersByTime(5 * 60 * 1000);
+      expect(sm.getState()).toBe('fallingAsleep');
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('waking');
+
+      sm.stop();
+    });
+
+    it('is a no-op while dragging', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      sm.startDragging();
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('dragging');
+
+      sm.stop();
+    });
+
+    it('is a no-op while scanning', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      sm.startScanning();
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('scanning');
+
+      sm.stop();
+    });
+
+    it('is a no-op while eating', () => {
+      const sm = new HamsterStateMachine(buildManifest());
+      sm.start();
+      sm.startEating(() => {});
+
+      sm.triggerClickAnimation();
+      expect(sm.getState()).toBe('eating');
+
+      sm.stop();
+    });
+  });
 });
