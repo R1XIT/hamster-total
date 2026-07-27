@@ -59,6 +59,57 @@ describe('HamsterStateMachine', () => {
     sm.stop();
   });
 
+  it('accepts a custom sleep timeout via the constructor (configured sleepTimeoutMinutes)', () => {
+    const sm = new HamsterStateMachine(buildManifest(), 60 * 1000);
+    sm.start();
+
+    vi.advanceTimersByTime(60 * 1000);
+    expect(sm.getState()).toBe('fallingAsleep');
+
+    sm.stop();
+  });
+
+  it('does not fall asleep early under a longer custom timeout', () => {
+    const sm = new HamsterStateMachine(buildManifest(), 10 * 60 * 1000);
+    sm.start();
+
+    // Prevent the unrelated idle-variant animation from randomly firing
+    // during the wait, same as the existing "resets the inactivity clock" test.
+    const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+
+    vi.advanceTimersByTime(5 * 60 * 1000);
+    expect(sm.getState()).toBe('idle');
+
+    mockRandom.mockRestore();
+    sm.stop();
+  });
+
+  it('setSleepTimeoutMs updates the timeout live without a restart', () => {
+    const sm = new HamsterStateMachine(buildManifest());
+    sm.start();
+
+    // Reduce the timeout well below the default 5 minutes.
+    sm.setSleepTimeoutMs(60 * 1000);
+
+    vi.advanceTimersByTime(60 * 1000);
+    expect(sm.getState()).toBe('fallingAsleep');
+
+    sm.stop();
+  });
+
+  it('setSleepTimeoutMs does not reset the inactivity clock', () => {
+    const sm = new HamsterStateMachine(buildManifest());
+    sm.start();
+
+    vi.advanceTimersByTime(50 * 1000); // 50s of the (still default) 5min elapsed
+    sm.setSleepTimeoutMs(60 * 1000); // now only 10s away from sleeping
+
+    vi.advanceTimersByTime(10 * 1000);
+    expect(sm.getState()).toBe('fallingAsleep');
+
+    sm.stop();
+  });
+
   it('startDragging/stopDragging transitions correctly and cancels pending timers', () => {
     const sm = new HamsterStateMachine(buildManifest());
     sm.start();

@@ -4,6 +4,7 @@ import { pathToFileURL } from 'url';
 import { webUtils, ipcRenderer } from 'electron';
 import { HamsterStateMachine } from './hamster/HamsterStateMachine';
 import { AnimationManifest, HamsterState } from '../shared/hamster-states';
+import { AppConfig } from '../main/config';
 import { Bubble } from './bubble/Bubble';
 import { setupDraggingAnimation } from './hamster/windowDragging';
 import { setupDragAndDrop } from './hamster/dragAndDrop';
@@ -13,7 +14,12 @@ const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 const manifestPath = path.join(assetsDir, 'manifest.json');
 const manifest: AnimationManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 
-const stateMachine = new HamsterStateMachine(manifest);
+// Fetch the persisted config synchronously so the state machine is built
+// with the user's configured sleep timeout from the very first tick,
+// instead of a hardcoded default that silently ignores Settings.
+const initialConfig: AppConfig = ipcRenderer.sendSync('get-config');
+
+const stateMachine = new HamsterStateMachine(manifest, initialConfig.sleepTimeoutMinutes * 60 * 1000);
 const imgEl = document.getElementById('hamster-img') as HTMLImageElement;
 
 function updateImage(state: HamsterState): void {
@@ -62,4 +68,11 @@ ipcRenderer.on('scan-started', () => {
 
 ipcRenderer.on('scan-finished', () => {
   stateMachine.stopScanning();
+});
+
+// finding 1 / finding 3: pick up a live sleepTimeoutMinutes change from
+// Settings without requiring an app restart. Broadcast on every
+// settings:update (see main/index.ts); harmless no-op if unchanged.
+ipcRenderer.on('config-updated', (_event, config: AppConfig) => {
+  stateMachine.setSleepTimeoutMs(config.sleepTimeoutMinutes * 60 * 1000);
 });

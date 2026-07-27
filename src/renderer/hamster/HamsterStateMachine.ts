@@ -1,7 +1,11 @@
 import { HamsterState, AnimationManifest } from '../../shared/hamster-states';
 
 const IDLE_STATES: HamsterState[] = ['idle', 'idleVariant1', 'idleVariant2'];
-const SLEEP_INACTIVITY_MS = 5 * 60 * 1000;
+// Fallback used only when no configured value is supplied (kept so existing
+// callers/tests that omit the constructor argument keep working). The real
+// value comes from AppConfig.sleepTimeoutMinutes at runtime — see
+// renderer/index.ts.
+const DEFAULT_SLEEP_INACTIVITY_MS = 5 * 60 * 1000;
 const SLEEP_CHECK_INTERVAL_MS = 5000;
 const IDLE_VARIANT_CHECK_INTERVAL_MS = 30 * 1000;
 const IDLE_VARIANT_CHANCE = 0.3;
@@ -16,7 +20,19 @@ export class HamsterStateMachine {
   private sleepCheckTimer: ReturnType<typeof setInterval> | null = null;
   private idleVariantTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private manifest: AnimationManifest) {}
+  constructor(
+    private manifest: AnimationManifest,
+    private sleepTimeoutMs: number = DEFAULT_SLEEP_INACTIVITY_MS
+  ) {}
+
+  /**
+   * Updates how long the hamster idles before falling asleep. Safe to call
+   * while running (e.g. in response to a live Settings change) — it takes
+   * effect on the next periodic sleep check without resetting lastActivity.
+   */
+  setSleepTimeoutMs(ms: number): void {
+    this.sleepTimeoutMs = ms;
+  }
 
   start(): void {
     this.sleepCheckTimer = setInterval(() => this.checkSleep(), SLEEP_CHECK_INTERVAL_MS);
@@ -90,7 +106,7 @@ export class HamsterStateMachine {
 
   private checkSleep(): void {
     if (!IDLE_STATES.includes(this.state)) return;
-    if (Date.now() - this.lastActivity >= SLEEP_INACTIVITY_MS) {
+    if (Date.now() - this.lastActivity >= this.sleepTimeoutMs) {
       this.fallAsleep();
     }
   }

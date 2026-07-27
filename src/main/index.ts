@@ -49,6 +49,13 @@ function createScheduler(): ScanScheduler {
   );
 }
 
+// Synchronous initial-config fetch for the hamster renderer's bootstrap
+// (mirrors settings:request-config/settings:config, but the hamster window
+// needs the value before it constructs its state machine).
+ipcMain.on('get-config', (event) => {
+  event.returnValue = configStore.load();
+});
+
 ipcMain.on('file-dropped', async (event, filePath: string) => {
   if (!fs.existsSync(filePath)) {
     event.sender.send('file-drop-result', { accepted: false, reason: 'not-found' });
@@ -75,7 +82,17 @@ app.whenReady().then(() => {
     iconPath: path.join(assetsDir, 'homo_defoult.webp'),
     scheduler: scheduler!,
     configStore,
-    openSettings: () => openSettingsWindow(configStore),
+    openSettings: () =>
+      openSettingsWindow(configStore, {
+        onSettingsUpdated: (config) => {
+          // finding 2: apply a changed scanIntervalHours immediately instead
+          // of only on next app launch.
+          scheduler?.reschedule();
+          // finding 1: push the (possibly changed) sleepTimeoutMinutes to the
+          // already-running hamster window so it takes effect live.
+          hamsterWindow?.webContents.send('config-updated', config);
+        },
+      }),
   });
 });
 

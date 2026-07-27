@@ -1,11 +1,23 @@
 import { BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { ConfigStore } from './config';
+import { ConfigStore, AppConfig } from './config';
+import { sanitizeConfigUpdate } from './settingsValidation';
+
+/**
+ * Hooks invoked after a successful `settings:update`, letting the caller
+ * (main/index.ts) propagate the change into the already-running app —
+ * rescheduling the scan timer and/or pushing the new config to the hamster
+ * window — without settingsWindow.ts needing to know about the scheduler or
+ * hamster window itself.
+ */
+export interface SettingsWindowHooks {
+  onSettingsUpdated?: (config: AppConfig) => void;
+}
 
 let settingsWindow: BrowserWindow | null = null;
 let handlersRegistered = false;
 
-function registerHandlersOnce(configStore: ConfigStore): void {
+function registerHandlersOnce(configStore: ConfigStore, hooks: SettingsWindowHooks): void {
   if (handlersRegistered) return;
   handlersRegistered = true;
 
@@ -14,8 +26,13 @@ function registerHandlersOnce(configStore: ConfigStore): void {
   });
 
   ipcMain.on('settings:update', (event, partial) => {
-    const next = configStore.update(partial);
+    // Never trust the renderer's raw numbers: an empty/invalid input can
+    // arrive as NaN/0/negative and must not be persisted (see
+    // settingsValidation.ts for the rationale and rules).
+    const sanitized = sanitizeConfigUpdate(partial);
+    const next = configStore.update(sanitized);
     event.sender.send('settings:config', next);
+    hooks.onSettingsUpdated?.(next);
   });
 
   ipcMain.on('settings:remove-folder', (event, folder: string) => {
@@ -33,8 +50,8 @@ function registerHandlersOnce(configStore: ConfigStore): void {
   });
 }
 
-export function openSettingsWindow(configStore: ConfigStore): void {
-  registerHandlersOnce(configStore);
+export function openSettingsWindow(configStore: ConfigStore, hooks: SettingsWindowHooks = {}): void {
+  registerHandlersOnce(configStore, hooks);
 
   if (settingsWindow) {
     settingsWindow.focus();
