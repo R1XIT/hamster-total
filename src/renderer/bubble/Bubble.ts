@@ -21,7 +21,6 @@ export class Bubble {
     for (const button of buttons) {
       const btn = document.createElement('button');
       btn.textContent = button.label;
-      btn.className = 'no-drag';
       btn.addEventListener('click', () => {
         button.onClick();
         this.hide();
