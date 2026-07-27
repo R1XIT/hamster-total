@@ -1,0 +1,47 @@
+{
+  "idle": {
+    "file": "homo_defoult.webp",
+    "durationMs": 4930,
+    "loop": true
+  },
+  "idleVariant1": {
+    "file": "homo_randomAnim1.webp",
+    "durationMs": 2400,
+    "loop": false
+  },
+  "idleVariant2": {
+    "file": "homo_randomAnim2.webp",
+    "durationMs": 2400,
+    "loop": false
+  },
+  "fallingAsleep": {
+    "file": "homo_sleep1.webp",
+    "durationMs": 1950,
+    "loop": false
+  },
+  "sleeping": {
+    "file": "homo_sleep2.webp",
+    "durationMs": 1600,
+    "loop": true
+  },
+  "waking": {
+    "file": "homo_sleep3.webp",
+    "durationMs": 3200,
+    "loop": false
+  },
+  "dragging": {
+    "file": "homo_drag.webp",
+    "durationMs": 1200,
+    "loop": true
+  },
+  "scanning": {
+    "file": "homo_viruschech.webp",
+    "durationMs": 4000,
+    "loop": true
+  },
+  "eating": {
+    "file": "homo_eatsHDD.webp",
+    "durationMs": 4810,
+    "loop": false
+  }
+}
