@@ -6,6 +6,7 @@ import { trashFile } from './fileops/trash';
 import { ScanScheduler } from './scanner/scheduler';
 import { scanPath } from './scanner/defender';
 import { ConfigStore } from './config';
+import { IgnoredThreatsTracker, notifyThreats, registerThreatResponseHandlers } from './threatFlow';
 
 let hamsterWindow: BrowserWindow | null = null;
 
@@ -25,6 +26,7 @@ function createHamsterWindow(): void {
 }
 
 const configStore = new ConfigStore(path.join(app.getPath('userData'), 'config.json'));
+const ignoredThreats = new IgnoredThreatsTracker();
 
 let scheduler: ScanScheduler | null = null;
 
@@ -38,8 +40,7 @@ function createScheduler(): ScanScheduler {
       return result;
     },
     (detections) => {
-      // eslint-disable-next-line no-console
-      console.log('Threats found (bubble wiring added in Task 10):', detections);
+      if (hamsterWindow) notifyThreats(hamsterWindow, detections, ignoredThreats);
     }
   );
 }
@@ -63,6 +64,7 @@ ipcMain.on('file-dropped', async (event, filePath: string) => {
 
 app.whenReady().then(() => {
   createHamsterWindow();
+  if (hamsterWindow) registerThreatResponseHandlers(hamsterWindow, ipcMain, ignoredThreats);
   scheduler = createScheduler();
   scheduler.start();
 });

@@ -7,6 +7,7 @@ import { AnimationManifest, HamsterState } from '../shared/hamster-states';
 import { Bubble } from './bubble/Bubble';
 import { setupDraggingAnimation } from './hamster/windowDragging';
 import { setupDragAndDrop } from './hamster/dragAndDrop';
+import { setupThreatNotifications } from './bubble/threatNotifications';
 
 const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 const manifestPath = path.join(assetsDir, 'manifest.json');
@@ -26,6 +27,8 @@ stateMachine.start();
 
 export const bubble = new Bubble(document.body);
 export { stateMachine };
+
+setupThreatNotifications(bubble, stateMachine);
 
 const rootEl = document.getElementById('hamster-root') as HTMLDivElement;
 
