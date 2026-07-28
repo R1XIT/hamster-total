@@ -9,6 +9,8 @@ import { ConfigStore } from './config';
 import { IgnoredThreatsTracker, notifyThreats, registerThreatResponseHandlers } from './threatFlow';
 import { createTray } from './tray';
 import { openSettingsWindow } from './settingsWindow';
+import { runVtCheck } from './vtFlow';
+import { sha256File, hashLookup, uploadBytes, pollAnalysis } from './scanner/virustotal';
 
 const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 const trayIconPath = path.join(__dirname, '..', '..', 'assets', 'icon.ico');
@@ -84,6 +86,45 @@ ipcMain.on('file-dropped', async (event, filePath: string) => {
   } else {
     event.sender.send('file-drop-result', { accepted: false, reason: result.reason });
   }
+});
+
+ipcMain.on('vt-check', async (event, filePath: string) => {
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    event.sender.send('vt-result', { ok: false, code: 'unknown' });
+    return;
+  }
+  const apiKey = configStore.load().virusTotalApiKey ?? '';
+  hamsterWindow?.webContents.send('scan-started');
+  const result = await runVtCheck(
+    filePath,
+    apiKey,
+    {
+      sha256File,
+      hashLookup: (key, sha) => hashLookup(key, sha),
+      fileSize: (p) => fs.statSync(p).size,
+      readFile: (p) => fs.readFileSync(p),
+      fileName: (p) => path.basename(p),
+      uploadBytes: (key, name, bytes) => uploadBytes(key, name, bytes),
+      pollAnalysis: (key, id) => pollAnalysis(key, id),
+    },
+    (stage) => event.sender.send('vt-progress', stage)
+  );
+  hamsterWindow?.webContents.send('scan-finished');
+  event.sender.send('vt-result', result);
+});
+
+ipcMain.on('vt-delete', async (event, filePath: string) => {
+  const result = await trashFile(filePath);
+  event.sender.send('vt-delete-result', { success: result.success });
+});
+
+ipcMain.on('open-settings', () => {
+  openSettingsWindow(configStore, {
+    onSettingsUpdated: (config) => {
+      scheduler?.reschedule();
+      hamsterWindow?.webContents.send('config-updated', config);
+    },
+  });
 });
 
 app.whenReady().then(() => {
