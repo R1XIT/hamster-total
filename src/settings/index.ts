@@ -6,6 +6,7 @@ const addFolderBtn = document.getElementById('add-folder') as HTMLButtonElement;
 const scanIntervalEl = document.getElementById('scan-interval') as HTMLInputElement;
 const sleepTimeoutEl = document.getElementById('sleep-timeout') as HTMLInputElement;
 const saveBtn = document.getElementById('save') as HTMLButtonElement;
+const vtApiKeyEl = document.getElementById('vt-api-key') as HTMLInputElement;
 
 function renderFolders(folders: string[]): void {
   folderListEl.innerHTML = '';
@@ -28,6 +29,7 @@ function renderConfig(config: AppConfig): void {
   renderFolders(config.scanFolders);
   scanIntervalEl.value = String(config.scanIntervalHours);
   sleepTimeoutEl.value = String(config.sleepTimeoutMinutes);
+  vtApiKeyEl.value = config.virusTotalApiKey ?? '';
 }
 
 ipcRenderer.on('settings:config', (_event, config: AppConfig) => {
@@ -42,6 +44,7 @@ saveBtn.addEventListener('click', () => {
   ipcRenderer.send('settings:update', {
     scanIntervalHours: Number(scanIntervalEl.value),
     sleepTimeoutMinutes: Number(sleepTimeoutEl.value),
+    virusTotalApiKey: vtApiKeyEl.value,
   });
 });
 
