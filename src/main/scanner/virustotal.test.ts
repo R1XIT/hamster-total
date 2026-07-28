@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeVerdict } from './virustotal';
+import { normalizeVerdict, hashLookup, VtError } from './virustotal';
 
 describe('normalizeVerdict', () => {
   it('counts clean vs detected and builds the engine list', () => {
@@ -30,5 +30,42 @@ describe('normalizeVerdict', () => {
 
   it('handles empty/undefined results', () => {
     expect(normalizeVerdict({}).total).toBe(0);
+  });
+});
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
+describe('hashLookup', () => {
+  it('returns a normalized verdict for a known hash (200)', async () => {
+    const fetchImpl = async () =>
+      jsonResponse(200, {
+        data: { attributes: { last_analysis_results: { A: { category: 'malicious', engine_name: 'A' } } } },
+      });
+    const v = await hashLookup('key', 'abc', fetchImpl as typeof fetch);
+    expect(v?.detected).toBe(1);
+  });
+
+  it('returns null for an unknown hash (404)', async () => {
+    const fetchImpl = async () => jsonResponse(404, {});
+    expect(await hashLookup('key', 'abc', fetchImpl as typeof fetch)).toBeNull();
+  });
+
+  it('throws VtError("auth") on 401', async () => {
+    const fetchImpl = async () => jsonResponse(401, {});
+    await expect(hashLookup('key', 'abc', fetchImpl as typeof fetch)).rejects.toMatchObject({ code: 'auth' });
+  });
+
+  it('throws VtError("quota") on 429', async () => {
+    const fetchImpl = async () => jsonResponse(429, {});
+    await expect(hashLookup('key', 'abc', fetchImpl as typeof fetch)).rejects.toMatchObject({ code: 'quota' });
+  });
+
+  it('throws VtError("network") when fetch rejects', async () => {
+    const fetchImpl = async () => {
+      throw new Error('boom');
+    };
+    await expect(hashLookup('key', 'abc', fetchImpl as typeof fetch)).rejects.toMatchObject({ code: 'network' });
   });
 });
