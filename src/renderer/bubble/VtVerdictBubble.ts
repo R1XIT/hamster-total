@@ -15,7 +15,7 @@ export class VtVerdictBubble {
 
   constructor(container: HTMLElement) {
     this.element = document.createElement('div');
-    this.element.className = 'vt-bubble hidden';
+    this.element.className = 'bubble vt-bubble hidden';
     container.appendChild(this.element);
   }
 

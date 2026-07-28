@@ -106,6 +106,10 @@ type VtResult =
 
 let lastCheckedPath: string | null = null;
 
+// Guards against a stale auto-hide timer (from a previous error bubble)
+// hiding a later progress/error/verdict bubble shown within the 5s window.
+let errorHideTimer: ReturnType<typeof setTimeout> | undefined;
+
 setupLupaScanTarget({
   lupaEl,
   dragSurface: window,
@@ -117,10 +121,12 @@ setupLupaScanTarget({
 });
 
 ipcRenderer.on('vt-progress', (_event, stage: string) => {
+  clearTimeout(errorHideTimer);
   bubble.show(VT_PROGRESS_TEXT[stage] ?? 'Проверяю…');
 });
 
 ipcRenderer.on('vt-result', (_event, result: VtResult) => {
+  clearTimeout(errorHideTimer);
   bubble.hide();
   if (!result.ok) {
     const message = VT_ERROR_TEXT[result.code] ?? VT_ERROR_TEXT.unknown;
@@ -130,7 +136,7 @@ ipcRenderer.on('vt-result', (_event, result: VtResult) => {
         ? [{ label: 'Открыть Настройки', onClick: () => ipcRenderer.send('open-settings') }]
         : []
     );
-    setTimeout(() => bubble.hide(), 5000);
+    errorHideTimer = setTimeout(() => bubble.hide(), 5000);
     return;
   }
   vtBubble.show(result.verdict, {

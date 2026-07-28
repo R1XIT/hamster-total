@@ -17,6 +17,21 @@ const trayIconPath = path.join(__dirname, '..', '..', 'assets', 'icon.ico');
 
 let hamsterWindow: BrowserWindow | null = null;
 
+// Both the scheduled Defender scan and the VT-check flow drive the same
+// renderer "scanning" animation. If they overlap, whichever finishes first
+// must not stop the animation while the other is still running — so we
+// ref-count active scan animations instead of sending scan-started/
+// scan-finished directly.
+let activeScanAnims = 0;
+function beginScanAnim(): void {
+  activeScanAnims++;
+  if (activeScanAnims === 1) hamsterWindow?.webContents.send('scan-started');
+}
+function endScanAnim(): void {
+  activeScanAnims = Math.max(0, activeScanAnims - 1);
+  if (activeScanAnims === 0) hamsterWindow?.webContents.send('scan-finished');
+}
+
 function createHamsterWindow(): void {
   hamsterWindow = new BrowserWindow({
     width: 150,
@@ -48,8 +63,8 @@ function createScheduler(): ScanScheduler {
     // the hamster always reacts to a manual "Сканировать сейчас" — even when no
     // folders are configured and the loop body never runs.
     {
-      onScanStart: () => hamsterWindow?.webContents.send('scan-started'),
-      onScanEnd: () => hamsterWindow?.webContents.send('scan-finished'),
+      onScanStart: () => beginScanAnim(),
+      onScanEnd: () => endScanAnim(),
     }
   );
 }
@@ -94,7 +109,7 @@ ipcMain.on('vt-check', async (event, filePath: string) => {
     return;
   }
   const apiKey = configStore.load().virusTotalApiKey ?? '';
-  hamsterWindow?.webContents.send('scan-started');
+  beginScanAnim();
   const result = await runVtCheck(
     filePath,
     apiKey,
@@ -109,7 +124,7 @@ ipcMain.on('vt-check', async (event, filePath: string) => {
     },
     (stage) => event.sender.send('vt-progress', stage)
   );
-  hamsterWindow?.webContents.send('scan-finished');
+  endScanAnim();
   event.sender.send('vt-result', result);
 });
 

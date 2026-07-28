@@ -31,6 +31,10 @@ describe('VtVerdictBubble', () => {
     bubble.show(cleanView, { onDelete: vi.fn(), onKeep: vi.fn() });
     expect(bubble.isVisible()).toBe(true);
     expect(container.querySelector('.vt-count')?.textContent).toBe('Прошёл 58 / 70');
+    // Guards against a class-name regression: the card must inherit the
+    // proven `.bubble` shell (position/size/background) or it renders
+    // unstyled and off-screen in the small frameless window.
+    expect(container.querySelector('.bubble.vt-bubble')).not.toBeNull();
   });
 
   it('marks the count as danger when there are detections', () => {
