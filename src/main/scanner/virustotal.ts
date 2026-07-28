@@ -88,7 +88,11 @@ export async function uploadBytes(
   fetchImpl: FetchImpl = fetch
 ): Promise<string> {
   const form = new FormData();
-  form.append('file', new Blob([bytes]), fileName);
+  // Cast needed: current @types/node's Uint8Array is generic over
+  // ArrayBufferLike (which includes SharedArrayBuffer), which lib.dom's
+  // BlobPart (ArrayBufferView<ArrayBuffer>) rejects at the type level even
+  // though a plain Uint8Array is always a valid Blob part at runtime.
+  form.append('file', new Blob([bytes as unknown as BlobPart]), fileName);
   let res: Response;
   try {
     res = await fetchImpl(`${VT_BASE}/files`, { method: 'POST', headers: { 'x-apikey': apiKey }, body: form });
