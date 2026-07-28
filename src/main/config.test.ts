@@ -49,4 +49,21 @@ describe('ConfigStore', () => {
     store.removeScanFolder('C:\\Users\\vlad\\Downloads');
     expect(store.load().scanFolders).toEqual(['C:\\Users\\vlad\\Desktop']);
   });
+
+  describe('seedDefaultScanFoldersIfFirstRun', () => {
+    it('seeds existing candidate folders on first run', () => {
+      const store = new ConfigStore(configPath);
+      // tmpDir itself is guaranteed to exist; a bogus path must be dropped.
+      const result = store.seedDefaultScanFoldersIfFirstRun([tmpDir, path.join(tmpDir, 'does-not-exist')]);
+      expect(result.scanFolders).toEqual([tmpDir]);
+      expect(store.load().scanFolders).toEqual([tmpDir]);
+    });
+
+    it('does not overwrite an existing config (respects a user who cleared folders)', () => {
+      const store = new ConfigStore(configPath);
+      store.save({ ...DEFAULT_CONFIG, scanFolders: [] });
+      store.seedDefaultScanFoldersIfFirstRun([tmpDir]);
+      expect(store.load().scanFolders).toEqual([]);
+    });
+  });
 });

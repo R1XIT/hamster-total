@@ -55,4 +55,40 @@ describe('ScanScheduler', () => {
 
     expect(onFindings).not.toHaveBeenCalled();
   });
+
+  it('fires onScanStart/onScanEnd around every scan, even with no folders configured', async () => {
+    const scan = vi.fn().mockResolvedValue({ defenderAvailable: true, detections: [] });
+    const onScanStart = vi.fn();
+    const onScanEnd = vi.fn();
+    const scheduler = new ScanScheduler(
+      () => ({ scanFolders: [], scanIntervalHours: 1 }),
+      scan,
+      vi.fn(),
+      { onScanStart, onScanEnd }
+    );
+
+    await scheduler.runScan();
+
+    // The animation must play as feedback even when there is nothing to scan.
+    expect(onScanStart).toHaveBeenCalledTimes(1);
+    expect(onScanEnd).toHaveBeenCalledTimes(1);
+    expect(scan).not.toHaveBeenCalled();
+  });
+
+  it('still fires onScanEnd if a folder scan throws', async () => {
+    const scan = vi.fn().mockRejectedValue(new Error('defender exploded'));
+    const onScanStart = vi.fn();
+    const onScanEnd = vi.fn();
+    const scheduler = new ScanScheduler(
+      () => ({ scanFolders: ['C:\\Downloads'], scanIntervalHours: 1 }),
+      scan,
+      vi.fn(),
+      { onScanStart, onScanEnd }
+    );
+
+    await expect(scheduler.runScan()).rejects.toThrow('defender exploded');
+
+    expect(onScanStart).toHaveBeenCalledTimes(1);
+    expect(onScanEnd).toHaveBeenCalledTimes(1);
+  });
 });

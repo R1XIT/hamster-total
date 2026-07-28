@@ -4,7 +4,25 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from process_sprites import remove_white_background, compute_duration_ms
+from process_sprites import remove_white_background, remove_solid_background, compute_duration_ms
+
+
+def test_remove_solid_background_clears_border_and_keeps_interior():
+    # 20x20 dark background with a lighter subject block in the middle that
+    # itself contains one dark (background-coloured) pixel.
+    bg = (47, 45, 53)
+    arr = np.zeros((20, 20, 4), dtype=np.uint8)
+    arr[:, :, :3] = bg
+    arr[:, :, 3] = 255
+    arr[6:14, 6:14, :3] = (220, 180, 120)  # subject
+    arr[10, 10, :3] = bg  # interior pixel that matches the background colour
+    frame = Image.fromarray(arr, mode="RGBA")
+
+    result = np.array(remove_solid_background(frame))
+
+    assert result[0, 0, 3] == 0  # border background becomes transparent
+    assert result[9, 9, 3] > 0  # subject stays opaque
+    assert result[10, 10, 3] > 0  # interior background-coloured pixel is preserved
 
 
 def test_remove_white_background_clears_white_and_keeps_color():

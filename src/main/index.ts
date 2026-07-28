@@ -38,14 +38,16 @@ let scheduler: ScanScheduler | null = null;
 function createScheduler(): ScanScheduler {
   return new ScanScheduler(
     () => configStore.load(),
-    async (targetPath) => {
-      hamsterWindow?.webContents.send('scan-started');
-      const result = await scanPath(targetPath);
-      hamsterWindow?.webContents.send('scan-finished');
-      return result;
-    },
+    (targetPath) => scanPath(targetPath),
     (detections) => {
       if (hamsterWindow) notifyThreats(hamsterWindow, detections, ignoredThreats);
+    },
+    // Drive the "scanning" animation around the whole scan (not per folder) so
+    // the hamster always reacts to a manual "Сканировать сейчас" — even when no
+    // folders are configured and the loop body never runs.
+    {
+      onScanStart: () => hamsterWindow?.webContents.send('scan-started'),
+      onScanEnd: () => hamsterWindow?.webContents.send('scan-finished'),
     }
   );
 }
@@ -85,6 +87,9 @@ ipcMain.on('file-dropped', async (event, filePath: string) => {
 });
 
 app.whenReady().then(() => {
+  // First launch: seed sensible scan targets (Downloads + Desktop) so scanning
+  // actually does something out of the box instead of iterating an empty list.
+  configStore.seedDefaultScanFoldersIfFirstRun([app.getPath('downloads'), app.getPath('desktop')]);
   createHamsterWindow();
   if (hamsterWindow) registerThreatResponseHandlers(hamsterWindow, ipcMain, ignoredThreats);
   scheduler = createScheduler();

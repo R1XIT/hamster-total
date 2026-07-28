@@ -52,4 +52,20 @@ export class ConfigStore {
     const current = this.load();
     return this.update({ scanFolders: current.scanFolders.filter((f) => f !== folderPath) });
   }
+
+  exists(): boolean {
+    return fs.existsSync(this.filePath);
+  }
+
+  /**
+   * First-run seeding: when no config file exists yet, persist the given
+   * candidate folders (keeping only those that actually exist on disk) as the
+   * initial scanFolders. No-op once a config file is present, so it never
+   * overwrites a user who has deliberately cleared their folder list.
+   */
+  seedDefaultScanFoldersIfFirstRun(candidateFolders: string[]): AppConfig {
+    if (this.exists()) return this.load();
+    const existing = candidateFolders.filter((p) => fs.existsSync(p));
+    return this.update({ scanFolders: existing });
+  }
 }
