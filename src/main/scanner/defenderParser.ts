@@ -4,6 +4,19 @@ export interface ThreatDetection {
   detectionTime: string;
 }
 
+/**
+ * Turn Defender's `Resources` value into a real filesystem path. Live
+ * Get-MpThreatDetection returns `Resources` as an ARRAY, and each entry is
+ * prefixed with the resource type, e.g. "file:_C:\path\file". Both would break
+ * the delete (shell.trashItem can't resolve "file:_C:\...") and clutter the
+ * bubble, so take the first entry and strip the "<type>:_" prefix. A drive path
+ * like "C:\" is never touched — the prefix pattern requires "letters + :_".
+ */
+function normalizeResourcePath(value: unknown): string {
+  const first = Array.isArray(value) ? value[0] : value;
+  return String(first ?? '').replace(/^[a-z]+:_/i, '');
+}
+
 export function parseThreatDetections(json: string): ThreatDetection[] {
   let raw: unknown;
   try {
@@ -18,7 +31,7 @@ export function parseThreatDetections(json: string): ThreatDetection[] {
     .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
     .map((item) => ({
       threatName: String(item['ThreatName'] ?? 'Unknown'),
-      resourcePath: String(item['Resources'] ?? ''),
+      resourcePath: normalizeResourcePath(item['Resources']),
       detectionTime: String(item['InitialDetectionTime'] ?? ''),
     }));
 }
