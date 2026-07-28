@@ -9,6 +9,8 @@ import { Bubble } from './bubble/Bubble';
 import { setupDraggingAnimation } from './hamster/windowDragging';
 import { setupDragAndDrop } from './hamster/dragAndDrop';
 import { setupThreatNotifications } from './bubble/threatNotifications';
+import { setupLupaScanTarget } from './hamster/vtDropZone';
+import { VtVerdictBubble, VtVerdictView } from './bubble/VtVerdictBubble';
 
 const assetsDir = path.join(__dirname, '..', '..', 'assets', 'processed');
 const manifestPath = path.join(assetsDir, 'manifest.json');
@@ -77,4 +79,68 @@ ipcRenderer.on('scan-finished', () => {
 // settings:update (see main/index.ts); harmless no-op if unchanged.
 ipcRenderer.on('config-updated', (_event, config: AppConfig) => {
   stateMachine.setSleepTimeoutMs(config.sleepTimeoutMinutes * 60 * 1000);
+});
+
+const lupaEl = document.getElementById('lupa') as HTMLDivElement;
+const vtBubble = new VtVerdictBubble(document.body);
+
+const VT_PROGRESS_TEXT: Record<string, string> = {
+  hashing: 'Проверяю на VirusTotal…',
+  uploading: 'Загружаю файл на VirusTotal…',
+  analyzing: 'Жду результат анализа…',
+};
+
+const VT_ERROR_TEXT: Record<string, string> = {
+  'no-key': 'Добавьте ключ VirusTotal в Настройках',
+  'too-large': 'Файл слишком большой для загрузки (лимит 32 МБ)',
+  quota: 'Лимит VirusTotal исчерпан, попробуйте позже',
+  auth: 'Неверный ключ VirusTotal, проверьте Настройки',
+  network: 'Не удалось связаться с VirusTotal',
+  timeout: 'VirusTotal не ответил вовремя, попробуйте позже',
+  unknown: 'Не удалось проверить файл',
+};
+
+type VtResult =
+  | { ok: true; verdict: VtVerdictView }
+  | { ok: false; code: string };
+
+let lastCheckedPath: string | null = null;
+
+setupLupaScanTarget({
+  lupaEl,
+  dragSurface: window,
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+  onScan: (filePath) => {
+    lastCheckedPath = filePath;
+    ipcRenderer.send('vt-check', filePath);
+  },
+});
+
+ipcRenderer.on('vt-progress', (_event, stage: string) => {
+  bubble.show(VT_PROGRESS_TEXT[stage] ?? 'Проверяю…');
+});
+
+ipcRenderer.on('vt-result', (_event, result: VtResult) => {
+  bubble.hide();
+  if (!result.ok) {
+    const message = VT_ERROR_TEXT[result.code] ?? VT_ERROR_TEXT.unknown;
+    bubble.show(
+      message,
+      result.code === 'no-key'
+        ? [{ label: 'Открыть Настройки', onClick: () => ipcRenderer.send('open-settings') }]
+        : []
+    );
+    setTimeout(() => bubble.hide(), 5000);
+    return;
+  }
+  vtBubble.show(result.verdict, {
+    onDelete: () => {
+      if (lastCheckedPath) ipcRenderer.send('vt-delete', lastCheckedPath);
+    },
+    onKeep: () => {},
+  });
+});
+
+ipcRenderer.on('vt-delete-result', (_event, res: { success: boolean }) => {
+  if (res.success) stateMachine.startEating(() => {});
 });

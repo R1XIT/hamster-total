@@ -30,10 +30,32 @@
     .bubble p { margin: 0 0 3px 0; }
     .bubble.hidden { display: none; }
     .bubble button { -webkit-app-region: no-drag; margin: 3px 3px 0 0; font-size: 10px; padding: 1px 4px; }
+    #lupa {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      pointer-events: auto;
+      z-index: 10;
+    }
+    #lupa.hidden { display: none; }
+    .vt-bubble.hidden, .vt-engines.hidden { display: none; }
+    .vt-count.danger { color: #c0392b; font-weight: bold; }
+    .vt-engines { max-height: 160px; overflow-y: auto; padding-left: 18px; margin: 6px 0; }
   </style>
 </head>
 <body>
   <div id="hamster-root">
+    <div id="lupa" class="hidden">🔍</div>
     <img id="hamster-img" src="" alt="hamster" />
   </div>
   <script>require('../../dist/renderer/index.js');</script>
