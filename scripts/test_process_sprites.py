@@ -4,7 +4,57 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from process_sprites import remove_white_background, remove_solid_background, compute_duration_ms
+from process_sprites import (
+    remove_white_background,
+    remove_solid_background,
+    register_to_canvas,
+    apply_shadow_mask,
+    compute_duration_ms,
+    REG_CANVAS,
+    REG_CENTER_X,
+    REG_TARGET_HEIGHT,
+    REG_FEET_Y,
+)
+
+
+def test_register_to_canvas_centers_scales_and_adds_shadow():
+    # An off-centre, oddly sized subject block on a transparent 256-max frame so
+    # the "idle" target height applies predictably.
+    arr = np.zeros((256, 256, 4), dtype=np.uint8)
+    arr[20:240, 40:120, :3] = (200, 150, 100)  # 80x220 block, left of centre
+    arr[20:240, 40:120, 3] = 255
+    frame = Image.fromarray(arr, mode="RGBA")
+
+    out = register_to_canvas([frame, frame], "idle")
+
+    assert len(out) == 2
+    assert out[0].size == REG_CANVAS
+    a = np.array(out[0])
+    opaque = a[:, :, 3] > 16
+    ys, xs = np.where(opaque)
+    # Horizontally centred on the shared anchor (allow a couple px for the shadow blur).
+    assert abs((xs.min() + xs.max()) // 2 - REG_CENTER_X) <= 3
+    # Subject scaled to idle's explicit target height. Measure the fully-opaque
+    # centre column (alpha 255); the soft shadow is semi-transparent (<=110) so
+    # a high threshold isolates the subject from the shadow tail below it.
+    col = np.where(a[:, REG_CENTER_X, 3] > 200)[0]
+    assert abs((col.max() - col.min() + 1) - REG_TARGET_HEIGHT["idle"]) <= 4
+    # A ground shadow exists on the baseline row, wider than a bit of noise.
+    shadow_row = np.where(a[REG_FEET_Y, :, 3] > 16)[0]
+    assert len(shadow_row) > 20
+
+
+def test_apply_shadow_mask_erases_painted_pixels_only():
+    # A fully opaque frame; the mask paints a rectangle to erase.
+    arr = np.full((40, 40, 4), 255, dtype=np.uint8)
+    frame = Image.fromarray(arr, mode="RGBA")
+    cut = np.zeros((40, 40), dtype=bool)
+    cut[30:38, 5:35] = True  # painted "shadow" band
+
+    out = np.array(apply_shadow_mask(frame, cut))
+
+    assert out[34, 20, 3] == 0  # painted pixel erased
+    assert out[10, 20, 3] == 255  # unpainted pixel untouched
 
 
 def test_remove_solid_background_clears_border_and_keeps_interior():
