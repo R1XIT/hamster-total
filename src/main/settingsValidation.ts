@@ -31,5 +31,13 @@ export function sanitizeConfigUpdate(partial: Partial<AppConfig>): Partial<AppCo
       delete sanitized[field];
     }
   }
+  if ('virusTotalApiKey' in sanitized) {
+    const key = sanitized.virusTotalApiKey;
+    if (typeof key === 'string') {
+      sanitized.virusTotalApiKey = key.trim();
+    } else {
+      delete sanitized.virusTotalApiKey;
+    }
+  }
   return sanitized;
 }

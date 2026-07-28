@@ -61,3 +61,21 @@ describe('sanitizeConfigUpdate', () => {
     expect(result).toEqual({ scanIntervalHours: 1, sleepTimeoutMinutes: 1 });
   });
 });
+
+describe('sanitizeConfigUpdate - virusTotalApiKey', () => {
+  it('trims a string key', () => {
+    const out = sanitizeConfigUpdate({ virusTotalApiKey: '  abc123  ' });
+    expect(out.virusTotalApiKey).toBe('abc123');
+  });
+
+  it('drops a non-string key', () => {
+    const out = sanitizeConfigUpdate({ virusTotalApiKey: 42 as unknown as string });
+    expect('virusTotalApiKey' in out).toBe(false);
+  });
+
+  it('leaves other fields untouched', () => {
+    const out = sanitizeConfigUpdate({ scanIntervalHours: 6, virusTotalApiKey: 'k' });
+    expect(out.scanIntervalHours).toBe(6);
+    expect(out.virusTotalApiKey).toBe('k');
+  });
+});

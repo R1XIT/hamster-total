@@ -6,6 +6,7 @@ export interface AppConfig {
   scanIntervalHours: number;
   sleepTimeoutMinutes: number;
   launchAtStartup: boolean;
+  virusTotalApiKey: string;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -13,6 +14,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   scanIntervalHours: 6,
   sleepTimeoutMinutes: 5,
   launchAtStartup: true,
+  virusTotalApiKey: '',
 };
 
 export class ConfigStore {
