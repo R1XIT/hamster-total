@@ -50,6 +50,8 @@ function throwForStatus(status: number): void {
   throw new VtError('unknown');
 }
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function hashLookup(
   apiKey: string,
   sha256: string,
@@ -77,4 +79,54 @@ export function sha256File(filePath: string): Promise<string> {
     stream.on('data', (chunk) => hash.update(chunk));
     stream.on('end', () => resolve(hash.digest('hex')));
   });
+}
+
+export async function uploadBytes(
+  apiKey: string,
+  fileName: string,
+  bytes: Uint8Array,
+  fetchImpl: FetchImpl = fetch
+): Promise<string> {
+  const form = new FormData();
+  form.append('file', new Blob([bytes]), fileName);
+  let res: Response;
+  try {
+    res = await fetchImpl(`${VT_BASE}/files`, { method: 'POST', headers: { 'x-apikey': apiKey }, body: form });
+  } catch {
+    throw new VtError('network');
+  }
+  if (!res.ok) throwForStatus(res.status);
+  const body = (await res.json()) as { data?: { id?: string } };
+  const id = body?.data?.id;
+  if (!id) throw new VtError('unknown');
+  return String(id);
+}
+
+export async function pollAnalysis(
+  apiKey: string,
+  analysisId: string,
+  fetchImpl: FetchImpl = fetch,
+  opts: { intervalMs?: number; timeoutMs?: number } = {}
+): Promise<VtVerdict> {
+  const intervalMs = opts.intervalMs ?? 3000;
+  const timeoutMs = opts.timeoutMs ?? 90000;
+  const start = Date.now();
+  for (;;) {
+    let res: Response;
+    try {
+      res = await fetchImpl(`${VT_BASE}/analyses/${analysisId}`, { headers: { 'x-apikey': apiKey } });
+    } catch {
+      throw new VtError('network');
+    }
+    if (!res.ok) throwForStatus(res.status);
+    const body = (await res.json()) as {
+      data?: { attributes?: { status?: string; results?: Record<string, { category?: string; engine_name?: string }> } };
+    };
+    const attrs = body?.data?.attributes;
+    if (attrs?.status === 'completed') {
+      return normalizeVerdict(attrs.results ?? {});
+    }
+    if (Date.now() - start > timeoutMs) throw new VtError('timeout');
+    await sleep(intervalMs);
+  }
 }

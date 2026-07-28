@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeVerdict, hashLookup, VtError } from './virustotal';
+import { normalizeVerdict, hashLookup, VtError, uploadBytes, pollAnalysis } from './virustotal';
 
 describe('normalizeVerdict', () => {
   it('counts clean vs detected and builds the engine list', () => {
@@ -67,5 +67,43 @@ describe('hashLookup', () => {
       throw new Error('boom');
     };
     await expect(hashLookup('key', 'abc', fetchImpl as typeof fetch)).rejects.toMatchObject({ code: 'network' });
+  });
+});
+
+describe('uploadBytes', () => {
+  it('returns the analysis id from a successful upload', async () => {
+    const fetchImpl = async () => jsonResponse(200, { data: { id: 'analysis-123' } });
+    const id = await uploadBytes('key', 'f.bin', new Uint8Array([1, 2, 3]), fetchImpl as typeof fetch);
+    expect(id).toBe('analysis-123');
+  });
+
+  it('throws VtError("quota") on 429', async () => {
+    const fetchImpl = async () => jsonResponse(429, {});
+    await expect(
+      uploadBytes('key', 'f.bin', new Uint8Array([1]), fetchImpl as typeof fetch)
+    ).rejects.toMatchObject({ code: 'quota' });
+  });
+});
+
+describe('pollAnalysis', () => {
+  it('polls until completed and returns the verdict', async () => {
+    const responses = [
+      jsonResponse(200, { data: { attributes: { status: 'in-progress' } } }),
+      jsonResponse(200, {
+        data: { attributes: { status: 'completed', results: { A: { category: 'harmless', engine_name: 'A' } } } },
+      }),
+    ];
+    let call = 0;
+    const fetchImpl = async () => responses[call++];
+    const v = await pollAnalysis('key', 'id', fetchImpl as typeof fetch, { intervalMs: 0, timeoutMs: 1000 });
+    expect(v.clean).toBe(1);
+    expect(call).toBe(2);
+  });
+
+  it('throws VtError("timeout") when never completing', async () => {
+    const fetchImpl = async () => jsonResponse(200, { data: { attributes: { status: 'queued' } } });
+    await expect(
+      pollAnalysis('key', 'id', fetchImpl as typeof fetch, { intervalMs: 0, timeoutMs: -1 })
+    ).rejects.toMatchObject({ code: 'timeout' });
   });
 });
